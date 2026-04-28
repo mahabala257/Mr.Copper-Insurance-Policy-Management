@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>InsureOS — Policy Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:     #0d0f14;
+    --paper:   #f5f3ee;
+    --cream:   #ede9e0;
+    --rule:    #d8d2c5;
+    --accent:  #c84b31;
+    --gold:    #d4a853;
+    --sage:    #4a7c6f;
+    --steel:   #3a5068;
+    --muted:   #7a7267;
+    --card:    #ffffff;
+    --shadow:  0 2px 12px rgba(13,15,20,.08);
+    --r:       6px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid var(--accent);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .header-meta { font-size: 11px; color: #8a8a8a; letter-spacing: 1px; text-transform: uppercase; }
+
+  .layout { display: flex; min-height: calc(100vh - 60px); }
+
+  nav.sidebar {
+    width: 220px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 0;
+    flex-shrink: 0;
+    border-right: 1px solid #1e2228;
+  }
+  .nav-section-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #555;
+    padding: 16px 24px 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    font-size: 12px;
+    color: #aaa;
+  }
+  .nav-item:hover { background: #1a1d24; color: var(--paper); }
+  .nav-item.active { background: #1a1d24; color: var(--paper); border-left-color: var(--accent); }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  main { flex: 1; overflow-y: auto; }
+  .page { display: none; padding: 32px; animation: fadeIn .2s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .page-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .stat-card.red::before   { background: var(--accent); }
+  .stat-card.gold::before  { background: var(--gold); }
+  .stat-card.sage::before  { background: var(--sage); }
+  .stat-card.steel::before { background: var(--steel); }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 6px; }
+
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--cream);
+  }
+  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--cream);
+    border-bottom: 1px solid var(--rule);
+    font-weight: 500;
+  }
+  tbody tr { border-bottom: 1px solid #f0ede8; transition: background .12s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #faf9f7; }
+  td { padding: 11px 14px; font-size: 12px; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .badge-active    { background: #e6f4f0; color: var(--sage); }
+  .badge-lapsed    { background: #fdecea; color: var(--accent); }
+  .badge-pending   { background: #fef7e8; color: var(--gold); }
+  .badge-expired   { background: #eeeeee; color: #888; }
+  .badge-surrendered { background: #f0e8f5; color: #7b4b9e; }
+  .badge-submitted { background: #e8f0fe; color: #3b6fd4; }
+  .badge-under-review { background: #fef3e2; color: #c77700; }
+  .badge-approved  { background: #e6f4f0; color: var(--sage); }
+  .badge-rejected  { background: #fdecea; color: var(--accent); }
+  .badge-settled   { background: #e6f4f0; color: var(--sage); }
+  .badge-paid      { background: #e6f4f0; color: var(--sage); }
+  .badge-overdue   { background: #fdecea; color: var(--accent); }
+  .badge-grace     { background: #fef7e8; color: var(--gold); }
+  .badge-health    { background: #e8f5fe; color: var(--steel); }
+  .badge-vehicle   { background: #f5e8fe; color: #7b4b9e; }
+  .badge-life      { background: #fef3e8; color: #c06000; }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 7px 14px;
+    transition: all .15s;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .btn-primary  { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #b03824; }
+  .btn-outline  { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+  .btn-outline:hover { background: var(--cream); }
+  .btn-sage     { background: var(--sage); color: white; }
+  .btn-sage:hover { background: #3a6a5f; }
+  .btn-gold     { background: var(--gold); color: white; }
+  .btn-steel    { background: var(--steel); color: white; }
+  .btn-sm { padding: 4px 10px; font-size: 10px; }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    animation: slideUp .2s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .modal-head {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 8px 8px 0 0;
+  }
+  .modal-head h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; line-height: 1; }
+  .modal-close:hover { color: white; }
+  .modal-body { padding: 24px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  input, select, textarea {
+    font-family: 'DM Mono', monospace;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  .detail-item label { display: block; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .detail-item .val  { font-size: 13px; }
+
+  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all .25s;
+    border-left: 4px solid var(--accent);
+    max-width: 320px;
+  }
+  #toast.show { opacity: 1; transform: none; }
+  #toast.ok   { border-left-color: var(--sage); }
+  #toast.err  { border-left-color: var(--accent); }
+
+  .history-list { list-style: none; margin-top: 12px; }
+  .history-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dotted var(--rule);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .history-list li span:first-child { color: var(--ink); }
+
+  .risk-bar { height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; margin: 6px 0; }
+  .risk-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+  .risk-low  { background: var(--sage); }
+  .risk-med  { background: var(--gold); }
+  .risk-high { background: var(--accent); }
+
+  .empty { text-align: center; padding: 48px; color: var(--muted); }
+  .empty .e-icon { font-size: 36px; margin-bottom: 10px; }
+  .empty p { font-size: 12px; }
+
+  .actor-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: var(--cream);
+    border-radius: var(--r);
+    border: 1px solid var(--rule);
+  }
+  .actor-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Insure<span>OS</span></div>
+  <div class="header-meta">Policy Management System &nbsp;|&nbsp; v2.1</div>
+</header>
+
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="nav-section-label">Overview</div>
+  <div class="nav-item active" data-page="dashboard"><span class="icon">◈</span> Dashboard</div>
+
+  <div class="nav-section-label">Core</div>
+  <div class="nav-item" data-page="policies"><span class="icon">📋</span> Policies</div>
+  <div class="nav-item" data-page="premiums"><span class="icon">💳</span> Premiums</div>
+  <div class="nav-item" data-page="claims"><span class="icon">🗂</span> Claims</div>
+  <div class="nav-item" data-page="underwriting"><span class="icon">🔍</span> Underwriting</div>
+
+  <div class="nav-section-label">People</div>
+  <div class="nav-item" data-page="holders"><span class="icon">👤</span> Policyholders</div>
+</nav>
+
+<main>
+
+<section id="page-dashboard" class="page active">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">System-wide overview — all actors, all modules</div>
+    </div>
+  </div>
+
+  <div class="actor-strip">
+    <div class="actor-pill">👤 Policyholder</div>
+    <div class="actor-pill">🧑‍💼 Insurance Agent</div>
+    <div class="actor-pill">🔍 Underwriter</div>
+    <div class="actor-pill">⚖️ Claims Adjuster</div>
+    <div class="actor-pill">⚙️ System</div>
+  </div>
+
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <div class="two-col">
+    <div class="table-wrap">
+      <div class="table-header"><span class="table-title">Recent Policies</span></div>
+      <table>
+        <thead><tr><th>Policy #</th><th>Holder</th><th>Type</th><th>Status</th></tr></thead>
+        <tbody id="dash-policies"></tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><span class="table-title">Recent Claims</span></div>
+      <table>
+        <thead><tr><th>Claim #</th><th>Policy</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="dash-claims"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="page-policies" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Policies</div>
+      <div class="page-sub">Health · Vehicle · Life — full lifecycle management</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modal-add-policy')">+ New Policy</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">All Policies</span>
+      <select id="filter-policy-status" onchange="renderPolicies()" style="width:140px">
+        <option value="">All Status</option>
+        <option>Active</option><option>Pending</option><option>Lapsed</option>
+        <option>Surrendered</option><option>Expired</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Policy #</th><th>Holder</th><th>Type</th>
+          <th>Coverage</th><th>Premium/mo</th><th>End Date</th>
+          <th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-policies"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="page-premiums" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Premiums</div>
+      <div class="page-sub">Payment tracking, overdue management & grace periods</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modal-add-premium')">+ Record Premium</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Premium Ledger</span>
+      <select id="filter-premium-status" onchange="renderPremiums()" style="width:140px">
+        <option value="">All Status</option>
+        <option>Pending</option><option>Paid</option>
+        <option>Overdue</option><option>Grace Period</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Premium #</th><th>Policy</th><th>Due Date</th>
+          <th>Amount</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-premiums"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="page-claims" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Claims</div>
+      <div class="page-sub">Submit · Review · Approve · Settle — full adjudication pipeline</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modal-add-claim')">+ File Claim</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Claims Register</span>
+      <select id="filter-claim-status" onchange="renderClaims()" style="width:160px">
+        <option value="">All Status</option>
+        <option>Submitted</option><option>Under Review</option>
+        <option>Approved</option><option>Rejected</option><option>Settled</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Claim #</th><th>Policy</th><th>Incident Date</th>
+          <th>Claimed</th><th>Settlement</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-claims"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="page-underwriting" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Underwriting</div>
+      <div class="page-sub">Risk assessment & policy approval — pending applications</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header"><span class="table-title">Pending Approval Queue</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Policy #</th><th>Holder</th><th>Type</th>
+          <th>Coverage</th><th>Risk Score</th><th>Recommendation</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-underwriting"></tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header"><span class="table-title">Underwriter Decision Log</span></div>
+    <table>
+      <thead><tr><th>Policy #</th><th>Action</th><th>By</th><th>Notes</th><th>Timestamp</th></tr></thead>
+      <tbody id="table-uw-log"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="page-holders" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Policyholders</div>
+      <div class="page-sub">Customer registry with policy summary</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modal-add-holder')">+ Add Holder</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header"><span class="table-title">Registered Customers</span></div>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Age</th><th>Email</th><th>Phone</th><th>Policies</th></tr>
+      </thead>
+      <tbody id="table-holders"></tbody>
+    </table>
+  </div>
+</section>
+
+</main><!-- /main -->
+</div><!-- /layout -->
+
+
+<div class="modal-overlay" id="modal-add-policy">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>New Insurance Policy</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-policy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Policyholder</label>
+          <select id="new-holder-id"></select>
+        </div>
+        <div class="form-group">
+          <label>Policy Type</label>
+          <select id="new-type">
+            <option value="Health">Health</option>
+            <option value="Vehicle">Vehicle</option>
+            <option value="Life">Life</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Coverage Amount (₹)</label>
+          <input type="number" id="new-coverage" value="500000" />
+        </div>
+        <div class="form-group">
+          <label>Monthly Premium (₹)</label>
+          <input type="number" id="new-premium-amt" value="2500" />
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="new-start" />
+        </div>
+        <div class="form-group">
+          <label>End Date</label>
+          <input type="date" id="new-end" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="closeModal('modal-add-policy')">Cancel</button>
+        <button class="btn btn-primary" onclick="addPolicy()">Create Policy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-policy-actions">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="policy-modal-title">Policy Details</h3>
+      <button class="modal-close" onclick="closeModal('modal-policy-actions')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="policy-detail-grid" style="margin-bottom:20px"></div>
+      <div class="action-bar" id="policy-action-bar"></div>
+      <div id="policy-renew-form" style="display:none;margin-top:12px">
+        <div class="form-group">
+          <label>New End Date</label>
+          <input type="date" id="renew-date" />
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn btn-sage" onclick="confirmRenew()">Confirm Renewal</button>
+          <button class="btn btn-outline" onclick="document.getElementById('policy-renew-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+      <ul class="history-list" id="policy-history"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-claim">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>File New Claim</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-claim')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Policy Number</label>
+          <select id="claim-policy-num"></select>
+        </div>
+        <div class="form-group">
+          <label>Incident Date</label>
+          <input type="date" id="claim-date" />
+        </div>
+        <div class="form-group">
+          <label>Claim Amount (₹)</label>
+          <input type="number" id="claim-amount" value="50000" />
+        </div>
+        <div class="form-group full">
+          <label>Description</label>
+          <textarea id="claim-desc" placeholder="Describe the incident…"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="closeModal('modal-add-claim')">Cancel</button>
+        <button class="btn btn-primary" onclick="addClaim()">Submit Claim</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-claim-review">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="claim-modal-title">Claim Review</h3>
+      <button class="modal-close" onclick="closeModal('modal-claim-review')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="claim-detail-grid" style="margin-bottom:20px"></div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Adjuster Notes</label>
+        <textarea id="adjuster-notes" placeholder="Enter decision notes…"></textarea>
+      </div>
+      <div class="action-bar" id="claim-action-bar"></div>
+      <ul class="history-list" id="claim-history" style="margin-top:16px"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-premium">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Record Premium</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-premium')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Policy Number</label>
+          <select id="prem-policy-num"></select>
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" id="prem-due" />
+        </div>
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="prem-amount" value="2500" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="closeModal('modal-add-premium')">Cancel</button>
+        <button class="btn btn-primary" onclick="addPremium()">Add Premium</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-holder">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>New Policyholder</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-holder')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Full Name</label>
+          <input type="text" id="h-name" placeholder="e.g. Meena Pillai" />
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="h-age" value="35" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="h-email" placeholder="name@example.com" />
+        </div>
+        <div class="form-group full">
+          <label>Phone</label>
+          <input type="text" id="h-phone" placeholder="10-digit mobile" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="closeModal('modal-add-holder')">Cancel</button>
+        <button class="btn btn-primary" onclick="addHolder()">Register Holder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-uw-review">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="uw-modal-title">Underwriter Review</h3>
+      <button class="modal-close" onclick="closeModal('modal-uw-review')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="uw-detail-grid" style="margin-bottom:16px"></div>
+      <div id="uw-risk-section" style="margin-bottom:16px">
+        <label style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Risk Assessment</label>
+        <div class="risk-bar" style="margin-top:6px"><div class="risk-fill" id="uw-risk-fill"></div></div>
+        <div id="uw-risk-label" style="font-size:11px;margin-top:4px"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Underwriter Notes</label>
+        <textarea id="uw-notes" placeholder="Enter assessment notes…"></textarea>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-sage" onclick="uwDecision('approve')">✓ Approve Policy</button>
+        <button class="btn btn-primary" onclick="uwDecision('reject')">✕ Reject Policy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const PolicyType   = { HEALTH:"Health", VEHICLE:"Vehicle", LIFE:"Life" };
+const PolicyStatus = { ACTIVE:"Active", LAPSED:"Lapsed", SURRENDERED:"Surrendered", PENDING:"Pending", EXPIRED:"Expired" };
+const ClaimStatus  = { SUBMITTED:"Submitted", UNDER_REVIEW:"Under Review", APPROVED:"Approved", REJECTED:"Rejected", SETTLED:"Settled" };
+const PremiumStatus = { PENDING:"Pending", PAID:"Paid", OVERDUE:"Overdue", GRACE:"Grace Period" };
+
+class Policy {
+  constructor({ policyNumber, holderId, type, coverageAmount, premium, startDate, endDate }) {
+    this.policyNumber=policyNumber; this.holderId=holderId; this.type=type;
+    this.coverageAmount=coverageAmount; this.premium=premium;
+    this.startDate=new Date(startDate); this.endDate=new Date(endDate);
+    this.status=PolicyStatus.PENDING; this.createdAt=new Date(); this.history=[];
+  }
+  _log(a){this.history.push({action:a,timestamp:new Date().toISOString()});}
+  activate(){if(this.status!==PolicyStatus.PENDING)throw new Error(`Cannot activate in '${this.status}' state.`);this.status=PolicyStatus.ACTIVE;this._log("Policy Activated");return this;}
+  lapse(){if(this.status!==PolicyStatus.ACTIVE)throw new Error("Only active policies can lapse.");this.status=PolicyStatus.LAPSED;this._log("Policy Lapsed");return this;}
+  renew(d){if(![PolicyStatus.ACTIVE,PolicyStatus.LAPSED,PolicyStatus.EXPIRED].includes(this.status))throw new Error("Not eligible for renewal.");this.endDate=new Date(d);this.status=PolicyStatus.ACTIVE;this._log(`Renewed until ${d}`);return this;}
+  surrender(){if(this.status!==PolicyStatus.ACTIVE)throw new Error("Only active policies can be surrendered.");this.status=PolicyStatus.SURRENDERED;this._log("Surrendered by policyholder");return this;}
+}
+
+class Claim {
+  constructor({claimId,policyNumber,incidentDate,amount,description=""}){
+    this.claimId=claimId;this.policyNumber=policyNumber;this.incidentDate=new Date(incidentDate);
+    this.amount=amount;this.description=description;this.status=ClaimStatus.SUBMITTED;
+    this.adjusterNotes="";this.settlement=null;this.submittedAt=new Date();this.history=[];
+  }
+  _log(a){this.history.push({action:a,timestamp:new Date().toISOString()});}
+  markUnderReview(){this.status=ClaimStatus.UNDER_REVIEW;this._log("Moved to Under Review");return this;}
+  approve(n=""){if(this.status!==ClaimStatus.UNDER_REVIEW)throw new Error("Must be Under Review.");this.status=ClaimStatus.APPROVED;this.adjusterNotes=n;this.settlement=this.calculateSettlement();this._log(`Approved. Settlement ₹${this.settlement}`);return this;}
+  reject(n=""){if(this.status!==ClaimStatus.UNDER_REVIEW)throw new Error("Must be Under Review.");this.status=ClaimStatus.REJECTED;this.adjusterNotes=n;this.settlement=0;this._log(`Rejected. ${n}`);return this;}
+  calculateSettlement(r=0.15){return parseFloat((this.amount*(1-r)).toFixed(2));}
+}
+
+class Premium {
+  constructor({premiumId,policyNumber,dueDate,amount}){
+    this.premiumId=premiumId;this.policyNumber=policyNumber;this.dueDate=new Date(dueDate);
+    this.amount=amount;this.status=PremiumStatus.PENDING;this.paidAt=null;this.history=[];
+  }
+  _log(a){this.history.push({action:a,timestamp:new Date().toISOString()});}
+  pay(){if(this.status===PremiumStatus.PAID)throw new Error("Already paid.");this.status=PremiumStatus.PAID;this.paidAt=new Date();this._log(`Paid ₹${this.amount}`);return this;}
+  markOverdue(){if(this.status===PremiumStatus.PAID)throw new Error("Cannot mark paid as overdue.");this.status=PremiumStatus.OVERDUE;this._log("Marked Overdue");return this;}
+  applyGracePeriod(days=30){if(this.status!==PremiumStatus.OVERDUE)throw new Error("Only overdue can get grace.");this.status=PremiumStatus.GRACE;const g=new Date(this.dueDate);g.setDate(g.getDate()+days);this.graceEndDate=g;this._log(`Grace ${days} days. Ends ${g.toDateString()}`);return this;}
+}
+
+class Underwriter {
+  constructor(name){this.underwriterName=name;this.decisions=[];}
+  assessRisk(p){let s=50;if(p.type==="Life")s+=20;if(p.type==="Health")s+=10;if(p.coverageAmount>1000000)s+=15;if(p.coverageAmount>5000000)s+=10;const r=s<70?"Low Risk — Approve":s<85?"Medium Risk — Review":"High Risk — Reject";return{score:Math.min(s,100),recommendation:r,assessedBy:this.underwriterName};}
+  approve(p,n=""){p.activate();const d={action:"Approved",policyNumber:p.policyNumber,notes:n,by:this.underwriterName,at:new Date().toISOString()};this.decisions.push(d);return d;}
+  reject(p,r=""){p.status=PolicyStatus.SURRENDERED;const d={action:"Rejected",policyNumber:p.policyNumber,reason:r,by:this.underwriterName,at:new Date().toISOString()};this.decisions.push(d);return d;}
+}
+
+class InsuranceStore {
+  constructor(){this.policies=new Map();this.claims=new Map();this.premiums=new Map();this.holders=new Map();this._c={policy:1,claim:1,premium:1};}
+  addHolder(h){this.holders.set(h.id,h);return h;}
+  getHolder(id){return this.holders.get(id);}
+  allHolders(){return[...this.holders.values()];}
+  addPolicy(data){const p=new Policy({policyNumber:`POL-${String(this._c.policy++).padStart(4,"0")}`, ...data});this.policies.set(p.policyNumber,p);return p;}
+  getPolicy(n){return this.policies.get(n);}
+  allPolicies(){return[...this.policies.values()];}
+  addClaim(data){const c=new Claim({claimId:`CLM-${String(this._c.claim++).padStart(4,"0")}`, ...data});this.claims.set(c.claimId,c);return c;}
+  getClaim(id){return this.claims.get(id);}
+  allClaims(){return[...this.claims.values()];}
+  addPremium(data){const pr=new Premium({premiumId:`PRM-${String(this._c.premium++).padStart(4,"0")}`, ...data});this.premiums.set(pr.premiumId,pr);return pr;}
+  getPremium(id){return this.premiums.get(id);}
+  allPremiums(){return[...this.premiums.values()];}
+  premiumsFor(n){return this.allPremiums().filter(p=>p.policyNumber===n);}
+  stats(){const po=this.allPolicies(),cl=this.allClaims(),pr=this.allPremiums();return{totalPolicies:po.length,activePolicies:po.filter(p=>p.status===PolicyStatus.ACTIVE).length,totalClaims:cl.length,pendingClaims:cl.filter(c=>[ClaimStatus.SUBMITTED,ClaimStatus.UNDER_REVIEW].includes(c.status)).length,settledAmount:cl.filter(c=>c.settlement).reduce((a,c)=>a+(c.settlement||0),0),premiumCollected:pr.filter(p=>p.status===PremiumStatus.PAID).reduce((a,p)=>a+p.amount,0),overdueCount:pr.filter(p=>p.status===PremiumStatus.OVERDUE).length};}
+}
+
+const store = new InsuranceStore();
+const uw    = new Underwriter("Deepa Nair");
+
+
+
+const fmt = n => `₹${Number(n).toLocaleString('en-IN')}`;
+const fmtDate = d => new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+function badge(text, extra="") {
+  const key = (text||"").toLowerCase().replace(/ /g,"-");
+  return `<span class="badge badge-${key} ${extra}">${text}</span>`;
+}
+
+function holderName(id){const h=store.getHolder(id);return h?h.name:id;}
+
+function toast(msg, type="ok") {
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="show "+type;
+  setTimeout(()=>t.className="",3000);
+}
+
+document.querySelectorAll(".nav-item").forEach(item=>{
+  item.addEventListener("click",()=>{
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    item.classList.add("active");
+    document.getElementById("page-"+item.dataset.page).classList.add("active");
+    refreshAll();
+  });
+});
+
+function openModal(id){
+  document.getElementById(id).classList.add("open");
+  populateSelects();
+}
+function closeModal(id){document.getElementById(id).classList.remove("open");}
+document.querySelectorAll(".modal-overlay").forEach(o=>{
+  o.addEventListener("click",e=>{ if(e.target===o) o.classList.remove("open"); });
+});
+
+function populateSelects(){
+  const holderSel=document.getElementById("new-holder-id");
+  if(holderSel){holderSel.innerHTML=store.allHolders().map(h=>`<option value="${h.id}">${h.name}</option>`).join("");}
+
+  const activePolicies=store.allPolicies().filter(p=>p.status===PolicyStatus.ACTIVE);
+  ["claim-policy-num","prem-policy-num"].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(sel)sel.innerHTML=activePolicies.map(p=>`<option value="${p.policyNumber}">${p.policyNumber} · ${p.type} · ${holderName(p.holderId)}</option>`).join("");
+  });
+
+  const today=new Date().toISOString().split("T")[0];
+  ["new-start","new-end","claim-date","prem-due"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && !el.value) el.value=today;
+  });
+}
+
+function addPolicy(){
+  try{
+    const p=store.addPolicy({
+      holderId:document.getElementById("new-holder-id").value,
+      type:document.getElementById("new-type").value,
+      coverageAmount:Number(document.getElementById("new-coverage").value),
+      premium:Number(document.getElementById("new-premium-amt").value),
+      startDate:document.getElementById("new-start").value,
+      endDate:document.getElementById("new-end").value,
+    });
+    toast(`Policy ${p.policyNumber} created — awaiting underwriting`,"ok");
+    closeModal("modal-add-policy");
+    refreshAll();
+  }catch(e){toast(e.message,"err");}
+}
+
+function addClaim(){
+  try{
+    const c=store.addClaim({
+      policyNumber:document.getElementById("claim-policy-num").value,
+      incidentDate:document.getElementById("claim-date").value,
+      amount:Number(document.getElementById("claim-amount").value),
+      description:document.getElementById("claim-desc").value,
+    });
+    toast(`Claim ${c.claimId} submitted successfully`,"ok");
+    closeModal("modal-add-claim");
+    refreshAll();
+  }catch(e){toast(e.message,"err");}
+}
+
+function addPremium(){
+  try{
+    const pr=store.addPremium({
+      policyNumber:document.getElementById("prem-policy-num").value,
+      dueDate:document.getElementById("prem-due").value,
+      amount:Number(document.getElementById("prem-amount").value),
+    });
+    toast(`Premium ${pr.premiumId} recorded`,"ok");
+    closeModal("modal-add-premium");
+    refreshAll();
+  }catch(e){toast(e.message,"err");}
+}
+
+function addHolder(){
+  const id="H"+String(store.holders.size+1).padStart(3,"0")+"X";
+  store.addHolder({
+    id,
+    name:document.getElementById("h-name").value,
+    age:Number(document.getElementById("h-age").value),
+    email:document.getElementById("h-email").value,
+    phone:document.getElementById("h-phone").value,
+  });
+  toast("Policyholder registered","ok");
+  closeModal("modal-add-holder");
+  refreshAll();
+}
+
+let _activePolicyNum=null;
+function openPolicyModal(policyNumber){
+  _activePolicyNum=policyNumber;
+  const p=store.getPolicy(policyNumber);
+  document.getElementById("policy-modal-title").textContent=`Policy ${p.policyNumber} — ${p.type}`;
+  document.getElementById("policy-renew-form").style.display="none";
+
+  document.getElementById("policy-detail-grid").innerHTML=`
+    <div class="detail-item"><label>Holder</label><div class="val">${holderName(p.holderId)}</div></div>
+    <div class="detail-item"><label>Type</label><div class="val">${badge(p.type)}</div></div>
+    <div class="detail-item"><label>Coverage</label><div class="val">${fmt(p.coverageAmount)}</div></div>
+    <div class="detail-item"><label>Monthly Premium</label><div class="val">${fmt(p.premium)}</div></div>
+    <div class="detail-item"><label>Start Date</label><div class="val">${fmtDate(p.startDate)}</div></div>
+    <div class="detail-item"><label>End Date</label><div class="val">${fmtDate(p.endDate)}</div></div>
+    <div class="detail-item"><label>Status</label><div class="val">${badge(p.status)}</div></div>
+  `;
+
+  const bar=document.getElementById("policy-action-bar");
+  bar.innerHTML="";
+  if(p.status===PolicyStatus.ACTIVE){
+    bar.innerHTML+=`<button class="btn btn-primary btn-sm" onclick="policyAction('lapse')">Mark Lapsed</button>`;
+    bar.innerHTML+=`<button class="btn btn-outline btn-sm" onclick="policyAction('surrender')">Surrender</button>`;
+    bar.innerHTML+=`<button class="btn btn-sage btn-sm" onclick="showRenew()">Renew</button>`;
+  } else if([PolicyStatus.LAPSED,PolicyStatus.EXPIRED].includes(p.status)){
+    bar.innerHTML+=`<button class="btn btn-sage btn-sm" onclick="showRenew()">Renew Policy</button>`;
+  }
+
+  document.getElementById("policy-history").innerHTML=
+    (p.history.length?p.history.slice().reverse().map(h=>`<li><span>${h.action}</span><span>${new Date(h.timestamp).toLocaleDateString()}</span></li>`).join(""):
+    `<li><span style="color:var(--muted)">No history yet</span></li>`);
+
+  openModal("modal-policy-actions");
+}
+
+function policyAction(action){
+  const p=store.getPolicy(_activePolicyNum);
+  try{
+    if(action==="lapse") p.lapse();
+    if(action==="surrender") p.surrender();
+    toast(`Policy ${action} successful`,"ok");
+    openPolicyModal(_activePolicyNum);
+    renderPolicies(); renderDashboard();
+  }catch(e){toast(e.message,"err");}
+}
+function showRenew(){
+  const f=document.getElementById("policy-renew-form");
+  f.style.display="block";
+  const y=new Date(); y.setFullYear(y.getFullYear()+1);
+  document.getElementById("renew-date").value=y.toISOString().split("T")[0];
+}
+function confirmRenew(){
+  const p=store.getPolicy(_activePolicyNum);
+  const d=document.getElementById("renew-date").value;
+  try{ p.renew(d); toast(`Policy renewed until ${fmtDate(d)}`,"ok"); openPolicyModal(_activePolicyNum); renderPolicies(); renderDashboard(); }
+  catch(e){toast(e.message,"err");}
+}
+
+let _activeClaimId=null;
+function openClaimModal(claimId){
+  _activeClaimId=claimId;
+  const c=store.getClaim(claimId);
+  document.getElementById("claim-modal-title").textContent=`Claim ${c.claimId}`;
+  document.getElementById("adjuster-notes").value=c.adjusterNotes||"";
+
+  document.getElementById("claim-detail-grid").innerHTML=`
+    <div class="detail-item"><label>Policy</label><div class="val">${c.policyNumber}</div></div>
+    <div class="detail-item"><label>Status</label><div class="val">${badge(c.status)}</div></div>
+    <div class="detail-item"><label>Incident Date</label><div class="val">${fmtDate(c.incidentDate)}</div></div>
+    <div class="detail-item"><label>Claimed Amount</label><div class="val">${fmt(c.amount)}</div></div>
+    <div class="detail-item"><label>Est. Settlement</label><div class="val">${fmt(c.calculateSettlement())}</div></div>
+    <div class="detail-item full"><label>Description</label><div class="val">${c.description}</div></div>
+  `;
+
+  const bar=document.getElementById("claim-action-bar");
+  bar.innerHTML="";
+  if(c.status===ClaimStatus.SUBMITTED)
+    bar.innerHTML+=`<button class="btn btn-gold btn-sm" onclick="claimAction('review')">▶ Move to Review</button>`;
+  if(c.status===ClaimStatus.UNDER_REVIEW){
+    bar.innerHTML+=`<button class="btn btn-sage btn-sm" onclick="claimAction('approve')">✓ Approve</button>`;
+    bar.innerHTML+=`<button class="btn btn-primary btn-sm" onclick="claimAction('reject')">✕ Reject</button>`;
+  }
+
+  document.getElementById("claim-history").innerHTML=
+    (c.history.length?c.history.slice().reverse().map(h=>`<li><span>${h.action}</span><span>${new Date(h.timestamp).toLocaleDateString()}</span></li>`).join(""):
+    `<li><span style="color:var(--muted)">No history</span></li>`);
+
+  openModal("modal-claim-review");
+}
+
+function claimAction(action){
+  const c=store.getClaim(_activeClaimId);
+  const notes=document.getElementById("adjuster-notes").value;
+  try{
+    if(action==="review")  c.markUnderReview();
+    if(action==="approve") c.approve(notes);
+    if(action==="reject")  c.reject(notes);
+    toast(`Claim ${action} successful`,"ok");
+    openClaimModal(_activeClaimId);
+    renderClaims(); renderDashboard();
+  }catch(e){toast(e.message,"err");}
+}
+
+function premiumAction(premiumId, action){
+  const pr=store.getPremium(premiumId);
+  try{
+    if(action==="pay")      pr.pay();
+    if(action==="overdue")  pr.markOverdue();
+    if(action==="grace")    pr.applyGracePeriod();
+    toast(`Premium ${action} action applied`,"ok");
+    renderPremiums(); renderDashboard();
+  }catch(e){toast(e.message,"err");}
+}
+
+let _activeUwPolicy=null;
+function openUwModal(policyNumber){
+  _activeUwPolicy=policyNumber;
+  const p=store.getPolicy(policyNumber);
+  const risk=uw.assessRisk(p);
+
+  document.getElementById("uw-modal-title").textContent=`Underwriting — ${policyNumber}`;
+  document.getElementById("uw-detail-grid").innerHTML=`
+    <div class="detail-item"><label>Holder</label><div class="val">${holderName(p.holderId)}</div></div>
+    <div class="detail-item"><label>Type</label><div class="val">${badge(p.type)}</div></div>
+    <div class="detail-item"><label>Coverage</label><div class="val">${fmt(p.coverageAmount)}</div></div>
+    <div class="detail-item"><label>Premium</label><div class="val">${fmt(p.premium)}/mo</div></div>
+  `;
+
+  const fill=document.getElementById("uw-risk-fill");
+  fill.style.width=risk.score+"%";
+  fill.className="risk-fill "+(risk.score<70?"risk-low":risk.score<85?"risk-med":"risk-high");
+  document.getElementById("uw-risk-label").innerHTML=`Score: <strong>${risk.score}/100</strong> — ${risk.recommendation}`;
+  document.getElementById("uw-notes").value="";
+
+  openModal("modal-uw-review");
+}
+
+function uwDecision(action){
+  const p=store.getPolicy(_activeUwPolicy);
+  const notes=document.getElementById("uw-notes").value;
+  try{
+    if(action==="approve") uw.approve(p,notes);
+    else uw.reject(p,notes);
+    toast(`Policy ${action}d by underwriter`,"ok");
+    closeModal("modal-uw-review");
+    refreshAll();
+  }catch(e){toast(e.message,"err");}
+}
+
+function renderDashboard(){
+  const s=store.stats();
+  document.getElementById("stats-grid").innerHTML=`
+    <div class="stat-card red"><div class="stat-value">${s.totalPolicies}</div><div class="stat-label">Total Policies</div></div>
+    <div class="stat-card sage"><div class="stat-value">${s.activePolicies}</div><div class="stat-label">Active Policies</div></div>
+    <div class="stat-card gold"><div class="stat-value">${s.pendingClaims}</div><div class="stat-label">Pending Claims</div></div>
+    <div class="stat-card steel"><div class="stat-value">${fmt(s.premiumCollected)}</div><div class="stat-label">Premiums Collected</div></div>
+    <div class="stat-card red"><div class="stat-value">${s.overdueCount}</div><div class="stat-label">Overdue Premiums</div></div>
+    <div class="stat-card sage"><div class="stat-value">${fmt(s.settledAmount)}</div><div class="stat-label">Claims Settled</div></div>
+  `;
+
+  const policies=store.allPolicies().slice(-5).reverse();
+  document.getElementById("dash-policies").innerHTML=policies.map(p=>`
+    <tr>
+      <td>${p.policyNumber}</td>
+      <td>${holderName(p.holderId)}</td>
+      <td>${badge(p.type)}</td>
+      <td>${badge(p.status)}</td>
+    </tr>`).join("") || `<tr><td colspan="4" class="empty"><p>No policies yet</p></td></tr>`;
+
+  const claims=store.allClaims().slice(-5).reverse();
+  document.getElementById("dash-claims").innerHTML=claims.map(c=>`
+    <tr>
+      <td>${c.claimId}</td>
+      <td>${c.policyNumber}</td>
+      <td>${fmt(c.amount)}</td>
+      <td>${badge(c.status)}</td>
+    </tr>`).join("") || `<tr><td colspan="4" class="empty"><p>No claims yet</p></td></tr>`;
+}
+
+function renderPolicies(){
+  const filter=document.getElementById("filter-policy-status").value;
+  let policies=store.allPolicies();
+  if(filter) policies=policies.filter(p=>p.status===filter);
+
+  document.getElementById("table-policies").innerHTML=policies.map(p=>`
+    <tr>
+      <td><strong>${p.policyNumber}</strong></td>
+      <td>${holderName(p.holderId)}</td>
+      <td>${badge(p.type)}</td>
+      <td>${fmt(p.coverageAmount)}</td>
+      <td>${fmt(p.premium)}</td>
+      <td>${fmtDate(p.endDate)}</td>
+      <td>${badge(p.status)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openPolicyModal('${p.policyNumber}')">Manage</button></td>
+    </tr>`).join("") || `<tr><td colspan="8"><div class="empty"><div class="e-icon">📋</div><p>No policies found</p></div></td></tr>`;
+}
+
+function renderPremiums(){
+  const filter=document.getElementById("filter-premium-status").value;
+  let premiums=store.allPremiums();
+  if(filter) premiums=premiums.filter(p=>p.status===filter);
+
+  document.getElementById("table-premiums").innerHTML=premiums.map(pr=>{
+    let actions="";
+    if(pr.status===PremiumStatus.PENDING||pr.status===PremiumStatus.OVERDUE||pr.status===PremiumStatus.GRACE)
+      actions+=`<button class="btn btn-sage btn-sm" onclick="premiumAction('${pr.premiumId}','pay')">Pay</button> `;
+    if(pr.status===PremiumStatus.PENDING)
+      actions+=`<button class="btn btn-primary btn-sm" onclick="premiumAction('${pr.premiumId}','overdue')">Mark Overdue</button> `;
+    if(pr.status===PremiumStatus.OVERDUE)
+      actions+=`<button class="btn btn-gold btn-sm" onclick="premiumAction('${pr.premiumId}','grace')">Grace Period</button>`;
+    return `<tr>
+      <td><strong>${pr.premiumId}</strong></td>
+      <td>${pr.policyNumber}</td>
+      <td>${fmtDate(pr.dueDate)}</td>
+      <td>${fmt(pr.amount)}</td>
+      <td>${badge(pr.status)}</td>
+      <td>${actions||"—"}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6"><div class="empty"><div class="e-icon">💳</div><p>No premiums found</p></div></td></tr>`;
+}
+
+function renderClaims(){
+  const filter=document.getElementById("filter-claim-status").value;
+  let claims=store.allClaims();
+  if(filter) claims=claims.filter(c=>c.status===filter);
+
+  document.getElementById("table-claims").innerHTML=claims.map(c=>`
+    <tr>
+      <td><strong>${c.claimId}</strong></td>
+      <td>${c.policyNumber}</td>
+      <td>${fmtDate(c.incidentDate)}</td>
+      <td>${fmt(c.amount)}</td>
+      <td>${c.settlement!=null?fmt(c.settlement):"—"}</td>
+      <td>${badge(c.status)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openClaimModal('${c.claimId}')">Review</button></td>
+    </tr>`).join("") || `<tr><td colspan="7"><div class="empty"><div class="e-icon">🗂</div><p>No claims found</p></div></td></tr>`;
+}
+
+function renderUnderwriting(){
+  const pending=store.allPolicies().filter(p=>p.status===PolicyStatus.PENDING);
+  document.getElementById("table-underwriting").innerHTML=pending.map(p=>{
+    const risk=uw.assessRisk(p);
+    const cls=risk.score<70?"risk-low":risk.score<85?"risk-med":"risk-high";
+    return `<tr>
+      <td><strong>${p.policyNumber}</strong></td>
+      <td>${holderName(p.holderId)}</td>
+      <td>${badge(p.type)}</td>
+      <td>${fmt(p.coverageAmount)}</td>
+      <td><div class="risk-bar" style="width:80px;display:inline-block"><div class="risk-fill ${cls}" style="width:${risk.score}%"></div></div> ${risk.score}</td>
+      <td style="font-size:11px">${risk.recommendation}</td>
+      <td><button class="btn btn-steel btn-sm" onclick="openUwModal('${p.policyNumber}')">Assess</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7"><div class="empty"><div class="e-icon">✅</div><p>No pending applications</p></div></td></tr>`;
+
+  document.getElementById("table-uw-log").innerHTML=uw.decisions.slice().reverse().map(d=>`
+    <tr>
+      <td>${d.policyNumber}</td>
+      <td>${badge(d.action===`Approved`?`Active`:`Surrendered`)}</td>
+      <td>${d.by}</td>
+      <td style="font-size:11px;color:var(--muted)">${d.notes||d.reason||"—"}</td>
+      <td>${new Date(d.at).toLocaleDateString()}</td>
+    </tr>`).join("") || `<tr><td colspan="5"><div class="empty"><p>No decisions yet</p></div></td></tr>`;
+}
+
+function renderHolders(){
+  document.getElementById("table-holders").innerHTML=store.allHolders().map(h=>{
+    const count=store.allPolicies().filter(p=>p.holderId===h.id).length;
+    return `<tr>
+      <td><strong>${h.id}</strong></td>
+      <td>${h.name}</td>
+      <td>${h.age}</td>
+      <td>${h.email}</td>
+      <td>${h.phone}</td>
+      <td>${count} polic${count===1?"y":"ies"}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6"><div class="empty"><p>No holders registered</p></div></td></tr>`;
+}
+
+function refreshAll(){
+  renderDashboard();
+  renderPolicies();
+  renderPremiums();
+  renderClaims();
+  renderUnderwriting();
+  renderHolders();
+}
+
+refreshAll();
+</script>
+</body>
+</html>
