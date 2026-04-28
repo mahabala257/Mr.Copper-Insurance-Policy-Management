@@ -1,4 +1,4 @@
-# Mr.Copper – Insurance Policy Management System
+# Insurance Policy Management System
 
 A modern **Insurance Policy Management System** built using JavaScript, HTML, and CSS.
 This project simulates a real-world insurance workflow including **policy creation, premium tracking, claims processing, and underwriting**.
